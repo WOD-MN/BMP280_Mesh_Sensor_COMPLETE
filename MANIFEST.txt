@@ -1,0 +1,294 @@
+BMP280 Mesh Sensor Node - Complete Package
+============================================
+
+QUICK REFERENCE
+===============
+
+File: BMP280_Mesh_Sensor_COMPLETE.zip
+
+Structure:
+  QUICK_START.md
+  INTEGRATION_GUIDE.md
+  Basic_Version/
+    src/
+      BMP280_Mesh_Sensor.ino (Main firmware - simple)
+    include/
+      sensor_data.h (Data structures)
+      mesh_utils.h (CRC & utility functions)
+    platformio.ini (Build configuration)
+    README.md (Feature overview)
+    config.ini (Configuration template)
+    Makefile (Build targets)
+
+  Advanced_Version/
+    src/
+      BMP280_Mesh_Advanced.ino (Main firmware - advanced)
+    include/
+      sensor_data.h (Data structures)
+      mesh_utils.h (CRC & utility functions)
+    platformio.ini (Build configuration)
+    README.md (Feature overview)
+    README_ADVANCED.md (Advanced features)
+    config.ini (Configuration template)
+    Makefile (Build targets)
+
+FILE DESCRIPTIONS
+=================
+
+BMP280_Mesh_Sensor.ino (Basic)
+  - 4.2 KB
+  - Simple sensor node firmware
+  - Reads BMP280 sensor every 30 seconds
+  - Transmits via mesh network
+  - No external dependencies beyond headers
+  - Good for learning
+
+BMP280_Mesh_Advanced.ino (Advanced)
+  - 6.8 KB
+  - Full mesh networking features
+  - Neighbor discovery & tracking
+  - Packet forwarding with hop limit
+  - Statistics tracking
+  - CRC16 validation
+  - Advanced logging
+
+sensor_data.h
+  - 500 bytes
+  - SensorReading structure (21 bytes)
+  - MeshPacket wrapper structure
+  - Data type definitions
+
+mesh_utils.h
+  - 624 bytes
+  - CRC16 calculation (X.25 polynomial)
+  - Hex encoding/decoding
+  - Utility functions for mesh operations
+
+platformio.ini
+  - 278 bytes
+  - PlatformIO configuration
+  - WEMOS D1 Mini board settings
+  - Library dependencies
+  - Build flags
+
+README.md (Basic)
+  - 3.8 KB
+  - Feature overview
+  - Hardware requirements
+  - Installation instructions
+  - Sensor data format
+  - Troubleshooting guide
+
+README_ADVANCED.md
+  - 4.2 KB
+  - Advanced version documentation
+  - Mesh network operation details
+  - Neighbor tracking
+  - Statistics & monitoring
+  - meshcore integration notes
+
+config.ini
+  - 330 bytes
+  - Configuration parameters
+  - Radio settings
+  - Network parameters
+  - Debug options
+
+Makefile
+  - 764 bytes
+  - PlatformIO targets:
+    - make build
+    - make upload
+    - make monitor
+    - make clean
+    - make rebuild
+    - make full
+
+QUICK START STEPS
+=================
+
+1. Extract COMPLETE.zip
+
+2. Navigate to Basic_Version or Advanced_Version
+
+3. Wire hardware:
+   - BMP280: SDA→D2, SCL→D1
+   - LoRa: CS→D8, RST→D4, DIO0→D3
+
+4. Install PlatformIO:
+   pip install platformio
+
+5. Build & upload:
+   pio run -e d1_mini --target upload
+
+6. Monitor:
+   pio device monitor -b 115200
+
+HARDWARE REQUIREMENTS
+====================
+
+- ESP8266 WEMOS D1 Mini
+- BMP280 sensor module (I2C)
+- LoRa radio module (SPI)
+- 3.3V power supply
+- USB cable for programming
+
+TECHNICAL SPECS
+===============
+
+Firmware Size:
+  Basic: 5.79 KB
+  Advanced: 9.43 KB
+
+Sensor Data Packet: 26 bytes total
+  - Header: 5 bytes
+  - Payload: 21 bytes
+  - CRC16: 2 bytes included
+
+LoRa Radio:
+  - Frequency: 915.0 MHz (US)
+  - Bandwidth: 125 kHz
+  - Spreading Factor: 9
+  - Coding Rate: 7
+  - TX Power: 17 dBm
+
+Power Consumption:
+  - Idle: ~5 mA
+  - Sensor reading: ~15 mA
+  - LoRa TX: ~100 mA peak
+  - Typical average: 7-10 mA
+
+Battery Life (2000 mAh):
+  - ~273 hours (11.4 days)
+  - With 30-second sensor interval
+
+CONFIGURATION
+=============
+
+Edit in sketch before upload:
+
+Radio Parameters:
+  LORA_FREQ = 915.0 MHz
+  LORA_BW = 125.0 kHz
+  LORA_SF = 9
+  LORA_CR = 7
+  TX_POWER = 17 dBm
+
+Sensor Parameters:
+  SENSOR_INTERVAL = 30 seconds
+  BMP280_I2C_ADDR = 0x76
+
+Network Parameters:
+  NODE_ID = 0x0001
+  HOP_LIMIT = 5
+  NODE_NAME = "Sensor_01"
+
+DOCUMENTATION
+==============
+
+QUICK_START.md
+  - 5-minute setup guide
+  - Basic troubleshooting
+  - Version selection help
+
+INTEGRATION_GUIDE.md
+  - Detailed setup instructions
+  - Hardware wiring diagrams
+  - Configuration reference
+  - Mesh network operation
+  - Advanced features
+  - Multi-node deployment
+  - Performance metrics
+  - Comprehensive troubleshooting
+
+README.md (each version)
+  - Feature overview
+  - Build instructions
+  - Serial output examples
+  - Sensor data format
+  - Future enhancements
+
+SUPPORT & TROUBLESHOOTING
+=========================
+
+BMP280 Issues:
+  - Check I2C address (0x76 or 0x77)
+  - Verify SCL/SDA wiring
+  - Test with multimeter (3.3V supply)
+
+LoRa Issues:
+  - Verify SPI connections
+  - Check antenna attachment
+  - Match gateway frequency
+  - Try external antenna for range
+
+Memory Issues:
+  - Use basic version for ESP8266
+  - Check heap usage in serial output
+  - Reduce MAX_NEIGHBORS in advanced version
+
+Building:
+  - Ensure PlatformIO is installed
+  - Check board selection: d1_mini
+  - Verify USB port
+  - Use 115200 baud for upload
+
+NEXT STEPS
+==========
+
+1. Extract and review documentation
+2. Choose Basic or Advanced version
+3. Gather hardware components
+4. Follow wiring diagram
+5. Build and upload firmware
+6. Verify sensor readings on serial output
+7. Deploy additional nodes
+8. Build receiver/gateway
+9. Set up data logging/dashboard
+
+SUPPORT RESOURCES
+=================
+
+BMP280 Datasheet:
+  https://www.bosch-sensortec.com/products/environmental-sensors/barometric-pressure-sensors/
+
+ESP8266 Documentation:
+  https://docs.platformio.org/en/latest/boards/espressif8266/d1_mini.html
+
+LoRa Specification:
+  https://lora-alliance.org/
+
+Arduino Reference:
+  https://www.arduino.cc/reference/
+
+CHANGELOG
+=========
+
+v1.0 (Current)
+  - Basic mesh sensor node firmware
+  - Advanced version with statistics
+  - Complete documentation
+  - PlatformIO & Arduino IDE support
+  - Multi-node deployment guide
+
+LICENSE
+=======
+
+Open source - Modify and distribute freely
+Provided as-is for research and personal projects
+Attribution appreciated
+
+CONTACT & SUPPORT
+=================
+
+For issues or questions:
+1. Check INTEGRATION_GUIDE.md troubleshooting section
+2. Review README.md for your chosen version
+3. Verify hardware connections
+4. Check serial output for error messages
+5. Test with basic version first if having issues
+
+---
+
+Ready to deploy your mesh sensor network!
+For detailed setup: see QUICK_START.md or INTEGRATION_GUIDE.md
