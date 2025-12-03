@@ -3,7 +3,6 @@
 #include <Adafruit_BMP280.h>
 #include <RadioLib.h>
 #include <U8g2lib.h>
-#include <math.h>
 #include "esp_task_wdt.h"
 #include "esp_sleep.h"
 #include "esp_system.h"
@@ -17,8 +16,7 @@
 #define ROLE_SINK           0   // 1 = logical sink node
 #define RADIO_PROFILE       0   // 0=long‑range, 1=fast
 #define LOW_POWER_MODE      0   // 0=always on, 1=deep sleep
-#define ENABLE_SECURITY     1   // 1 = basic auth
-#define ENABLE_BMP280_SIMULATOR 1  // 1 = simulated readings, 0 = real sensor
+#define ENABLE_SECURITY     1   // 1 = basic auth + optional encryption
 #define SECURITY_KEY        0xDEADBEEF
 
 
@@ -42,7 +40,7 @@
 // ========================================================
 #if REGION_PROFILE == 0
   float LORA_FREQ_BASE = 868.1f;
-  float DUTY_CYCLE_MAX = 0.01f;  // 1% for EU868
+  float DUTY_CYCLE_MAX = 0.1f;  // 10% for EU868
 #elif REGION_PROFILE == 1
   float LORA_FREQ_BASE = 915.0f;
   float DUTY_CYCLE_MAX = 0.02f;  // 2% for US915
@@ -131,6 +129,7 @@ struct MeshPacket {
 
 #pragma pack(pop)
 
+// CORRECTED static assertions (Problem #2 fix)
 static_assert(sizeof(MeshPacketHeader) == 12, "MeshPacketHeader size mismatch");
 static_assert(sizeof(SensorPacket) == 20, "SensorPacket size mismatch");
 static_assert(sizeof(MeshPacket) == 34, "MeshPacket size mismatch");
@@ -147,7 +146,7 @@ RTC_DATA_ATTR uint32_t bootCount = 0;
 
 
 // ========================================================
-// Global State Variables
+// Global State Variables (ALL DECLARED)
 // ========================================================
 unsigned long lastSensorTime   = 0;
 unsigned long lastStatsTime    = 0;
@@ -185,7 +184,7 @@ char NODE_NAME[20];
 
 
 // ========================================================
-// Dedup Cache
+// Dedup Cache with Aging (Problem #5)
 // ========================================================
 struct DedupEntry {
   uint16_t srcNode;
@@ -236,7 +235,7 @@ uint16_t calculateCRC16(const uint8_t* data, size_t len) {
 
 
 // ========================================================
-// LED (non-blocking)
+// LED (non-blocking - Problem #8)
 // ========================================================
 struct LEDState {
   bool active;
@@ -276,7 +275,7 @@ void setStatus(const String& l1, const String& l2 = "") {
 
 
 // ========================================================
-// Neighbor Management
+// Neighbor Management (Problem #6)
 // ========================================================
 struct Neighbor {
   uint16_t nodeId;
@@ -367,7 +366,7 @@ void cleanupNeighbors() {
 
 
 // ========================================================
-// Forward Queue
+// Forward Queue (Problem #7)
 // ========================================================
 struct ForwardQueueItem {
   uint8_t packet[MAX_PACKET_SIZE];
@@ -424,7 +423,7 @@ void processForwardQueue() {
 
 
 // ========================================================
-// Security / Auth
+// Security / Auth (Problem #14)
 // ========================================================
 bool verifyPacketAuth(const MeshPacket* mp) {
   return mp->header.headerVersion == MESH_HEADER_VERSION;
@@ -486,7 +485,7 @@ void displaySensorPage() {
     sprintf(buf, "Alt : %.0f m", currentAltitude);
     u8g2.drawStr(5, 54, buf);
   } else {
-    u8g2.drawStr(5, 30, "SENSOR UNAVAILABLE");
+    u8g2.drawStr(5, 30, "BMP280 UNAVAILABLE");
     u8g2.drawStr(5, 42, "Degraded mode ON");
   }
 }
@@ -503,7 +502,7 @@ void displayRadioPage() {
   sprintf(buf, "SNR : %d dB", lastSNR);
   u8g2.drawStr(5, 42, buf);
 
-  sprintf(buf, "Freq: %.1f MHz", LORA_FREQ);
+  sprintf(buf, "Freq: %.1f ", LORA_FREQ);
   u8g2.drawStr(5, 54, buf);
 }
 
@@ -524,7 +523,7 @@ void displayMeshPage() {
 
   Neighbor* best = getActiveNeighbor();
   if (best) {
-    sprintf(buf, "Best: 0x%04X", best->nodeId);
+    sprintf(buf, "Best: %04X", best->nodeId);
     u8g2.drawStr(65, 42, buf);
   }
 
@@ -591,18 +590,12 @@ void updateDisplay() {
 
 
 // ========================================================
-// BMP280 Setup (with Simulator)
+// BMP280 (Problem #4: degrade mode)
 // ========================================================
 bool setupBMP280() {
   Serial.println("[SETUP] BMP280...");
   setStatus("Init BMP280");
 
-#if ENABLE_BMP280_SIMULATOR
-  Serial.println("[INFO] BMP280 SIMULATOR mode enabled");
-  setStatus("BMP280 SIM");
-  sensorAvailable = true;
-  return true;
-#else
   if (!bmp.begin(0x76)) {
     if (!bmp.begin(0x77)) {
       Serial.println("[WARN] BMP280 not found; degraded mode");
@@ -624,12 +617,11 @@ bool setupBMP280() {
   setStatus("BMP280 OK");
   sensorAvailable = true;
   return true;
-#endif
 }
 
 
 // ========================================================
-// Radio Recovery
+// Radio Recovery (Problem #1)
 // ========================================================
 bool setupRadio() {
   Serial.println("[SETUP] LoRa...");
@@ -715,7 +707,7 @@ int receivePacket(uint8_t* buffer, size_t maxLen, int16_t* rssi = NULL, int8_t* 
 
 
 // ========================================================
-// Packet Processing
+// Packet Processing (Problem #2 & #14)
 // ========================================================
 void processReceivedPacket(uint8_t* data, size_t len, int16_t rssi, int8_t snr) {
   if (len != sizeof(MeshPacket)) {
@@ -771,7 +763,7 @@ void processReceivedPacket(uint8_t* data, size_t len, int16_t rssi, int8_t snr) 
 
 
 // ========================================================
-// Button Handler
+// Button Handler (Problem #12)
 // ========================================================
 void handleButtonPress() {
   if (digitalRead(BUTTON_PIN) == LOW) {
@@ -804,7 +796,7 @@ void feedWatchdog() {
 
 
 // ========================================================
-// Sensor TX (with BMP280 Simulator)
+// Sensor TX (Problem #4)
 // ========================================================
 void readAndTransmitSensorData() {
   if (!ROLE_SENSOR) return;
@@ -816,26 +808,6 @@ void readAndTransmitSensorData() {
 
   packetCounter++;
 
-#if ENABLE_BMP280_SIMULATOR
-  // Generate realistic random sensor data
-  static float simTemp = 22.5f;
-  simTemp += random(-50, 50) / 1000.0f;
-  if (simTemp < 18.0f) simTemp = 18.0f;
-  if (simTemp > 28.0f) simTemp = 28.0f;
-  currentTemp = simTemp;
-
-  static float simPressure = 1013.25f;
-  simPressure += random(-20, 20) / 100.0f;
-  if (simPressure < 1010.0f) simPressure = 1010.0f;
-  if (simPressure > 1020.0f) simPressure = 1020.0f;
-  currentPressure = simPressure;
-
-  currentAltitude = 44330.0f * (1.0f - pow(currentPressure / 1013.25f, 1.0f / 5.255f));
-
-  Serial.printf("[SIM] T=%.1f C, P=%.2f hPa, Alt=%.1f m\n",
-                currentTemp, currentPressure, currentAltitude);
-
-#else
   if (sensorAvailable) {
     currentTemp = bmp.readTemperature();
     currentPressure = bmp.readPressure() / 100.0f;
@@ -853,7 +825,6 @@ void readAndTransmitSensorData() {
     currentPressure = 1013.25f;
     currentAltitude = 0.0f;
   }
-#endif
 
   SensorPacket sp;
   sp.nodeId = NODE_ID;
