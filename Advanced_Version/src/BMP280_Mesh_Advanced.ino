@@ -13,7 +13,7 @@
 #define BMP_SCL D1  // GPIO5
 
 // Radio parameters (from meshcore recommendations)
-#define LORA_FREQ  915.0f
+#define LORA_FREQ  868.0f
 #define LORA_BW    125.0f
 #define LORA_SF    9
 #define LORA_CR    7
